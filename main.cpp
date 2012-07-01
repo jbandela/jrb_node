@@ -9,6 +9,7 @@
 #include <iostream>
 
 using namespace jrb_node;
+#ifdef JRB_NODE_SSL
 boost::asio::ssl::context context_(boost::asio::ssl::context::sslv23_server);
 
 #ifdef _MSC_VER 
@@ -17,6 +18,7 @@ boost::asio::ssl::context context_(boost::asio::ssl::context::sslv23_server);
 #pragma comment(lib,"libeay32.lib")
 #endif
 
+#endif
 
 int main()
 {
@@ -44,7 +46,7 @@ int main()
 			}
 		});
 
-
+#ifdef JRB_NODE_SSL
 		// Now set up secure server
 		// jrb.cer and .pkey are just self-signed certificates for localhost
 		context_.use_certificate_file("jrb.cer",boost::asio::ssl::context_base::file_format::pem);
@@ -69,6 +71,7 @@ int main()
 			}
 		});
 
+#endif
 		// run the io_service
 		io_service.run();
 

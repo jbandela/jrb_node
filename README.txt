@@ -28,5 +28,4 @@ An example program is provided in main.cpp
 all components are in namespace jrb_node
 
 COMPILERS
-Developed with MSVC 2012 RC
-Able to compile with gcc 4.7.1 but not able to fully test
+Compiles and runs with MSVC 2012 RC and mingw gcc 4.7.1 (nuwen.net distro)

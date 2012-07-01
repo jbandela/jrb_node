@@ -34,7 +34,7 @@ namespace jrb_node{
 		}
 #ifdef JRB_NODE_SSL
 		void jrb_shutdown_helper(boost::asio::ssl::stream<boost::asio::ip::tcp::socket>& s, boost::system::error_code& ec){
-			s.shutdown(ec);
+			s.shutdown(ec); // this seems to cause a hang in mingw gcc 4.7.1
 			jrb_shutdown_helper(s.next_layer(),ec);
 
 
@@ -110,7 +110,7 @@ namespace jrb_node{
 
 						auto str = boost::make_shared<std::string>(res.get_as_http());
 						auto ptr = pm->shared_from_this();
-						boost::asio::async_write(*pm->s_,boost::asio::buffer(*str),[ptr,str](const boost::system::error_code& e,  std::size_t bytes_transferred ){ 
+						pm->s_->async_write_some(boost::asio::buffer(*str),[ptr,str](const boost::system::error_code& e,  std::size_t bytes_transferred ){ 
 							if(e){
 								request req;
 								response res;
@@ -163,7 +163,12 @@ namespace jrb_node{
 
 		void handle_read( const boost::system::error_code& error,  std::size_t bytes_transferred ){
 			total_bytes_+= bytes_transferred;
-			if(error  == boost::asio::error::eof || is_short_read(error) ){ // boost returns short read for ssl termination	
+			if(is_short_read(error) && total_bytes_==0){
+				// close the connection
+				boost::system::error_code ec;
+				jrb_shutdown_helper(*s_,ec);
+			}
+			else if(error  == boost::asio::error::eof || is_short_read(error) ){ // boost returns short read for ssl termination	
 					if(bytes_transferred){
 						const char* data = buffer_.data();
 						if(http_parser_execute(this,&settings,data,bytes_transferred) != bytes_transferred){
@@ -210,7 +215,7 @@ namespace jrb_node{
 		}
 		static int counter;
 		~jrb_stream_reader(){
-			--counter;
+			std::cout << --counter << "\n";
 		}
 
 
@@ -246,6 +251,7 @@ namespace jrb_node{
 
 		acceptor_.async_accept(new_connection->socket(),[this,new_connection,func,s](const boost::system::error_code& error)mutable{
 			accept(func);
+
 			if(!error){
 				s->async_handshake(boost::asio::ssl::stream_base::server,[this,new_connection,func,s](const boost::system::error_code& error)mutable{
 
@@ -257,6 +263,8 @@ namespace jrb_node{
 						request req;
 						response res;
 						func(req,res,error);
+						boost::system::error_code ec;
+						jrb_shutdown_helper(*new_connection->s_,ec);
 					}
 
 				}); // async handshake
@@ -265,8 +273,11 @@ namespace jrb_node{
 				request req;
 				response res;
 				func(req,res,error);
+				boost::system::error_code ec;
+				jrb_shutdown_helper(*new_connection->s_,ec);
 
 			}
+
 
 		}); // async accept
 	}
@@ -353,7 +364,7 @@ namespace jrb_node{
 									boost::asio::async_write(*ptr->socket_, ptr->request_,[ptr,f](const boost::system::error_code& err, std::size_t sz){
 										if(!err){
 											auto sptr = boost::make_shared<jrb_stream_reader<SocketType>>(ptr->socket_,[ptr,f](request& req, response& res, const boost::system::error_code& ec)->bool{return false;});
-											sptr->handler_ = [sptr,ptr,f](request& req, response& res,const boost::system::error_code& ec)->bool{
+											sptr->handler_ = [ptr,f](request& req, response& res,const boost::system::error_code& ec)->bool{
 												f(ptr->uri_,req,ec);
 												return false;
 											};
@@ -566,8 +577,9 @@ namespace jrb_node{
 	}
 	namespace misc_strings {
 
-		const char name_value_separator[] = { ':', ' ' };
-		const char crlf[] = { '\r', '\n' };
+		const std::string name_value_separator = ": ";;
+		const std::string crlf = "\r\n";
+
 
 	} // namespace misc_strings
 
