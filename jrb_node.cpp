@@ -215,7 +215,8 @@ namespace jrb_node{
 		}
 		static int counter;
 		~jrb_stream_reader(){
-			std::cout << --counter << "\n";
+			--counter;
+//			std::cout << --counter << "\n";
 		}
 
 
@@ -577,7 +578,7 @@ namespace jrb_node{
 	}
 	namespace misc_strings {
 
-		const std::string name_value_separator = ": ";;
+		const std::string name_value_separator = ": ";
 		const std::string crlf = "\r\n";
 
 
