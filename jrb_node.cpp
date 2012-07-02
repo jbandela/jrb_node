@@ -54,7 +54,6 @@ namespace jrb_node{
 	
 	// helper function
 	bool is_short_read(const boost::system::error_code& error){
-		bool value;
 #ifdef JRB_NODE_SSL
 		return (error.category() == boost::asio::error::get_ssl_category() && 
 			error.value() == ERR_PACK(ERR_LIB_SSL, 0, SSL_R_SHORT_READ));
@@ -227,12 +226,12 @@ namespace jrb_node{
 	template <class  AsyncReadStream> 
 	int jrb_stream_reader<AsyncReadStream>::counter = 0;
 
-	void http_server::accept(handler_func func)
+	void http_server::accept_ec(handler_func func)
 	{
 		connection_ptr new_connection(new stream_reader(acceptor_.get_io_service(),func));
 
 		acceptor_.async_accept(*new_connection->s_,[this,new_connection,func](const boost::system::error_code& error){
-			accept(func);
+			accept_ec(func);
 			if (!error)
 			{
 				new_connection->start();
@@ -243,7 +242,7 @@ namespace jrb_node{
 	}
 
 #ifdef JRB_NODE_SSL
-	void https_server::accept(handler_func func)
+	void https_server::accept_ec(handler_func func)
 	{
 		typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 		boost::shared_ptr<ssl_socket> s(new ssl_socket(acceptor_.get_io_service(),context_));
@@ -251,7 +250,7 @@ namespace jrb_node{
 		connection_ptr new_connection(new stream_reader(s,func));
 
 		acceptor_.async_accept(new_connection->socket(),[this,new_connection,func,s](const boost::system::error_code& error)mutable{
-			accept(func);
+			accept_ec(func);
 
 			if(!error){
 				s->async_handshake(boost::asio::ssl::stream_base::server,[this,new_connection,func,s](const boost::system::error_code& error)mutable{

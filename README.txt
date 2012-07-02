@@ -27,5 +27,7 @@ An example program is provided in main.cpp
 
 all components are in namespace jrb_node
 
+An example jrb certificate and key (self signed for localhost) are used for the example program
+
 COMPILERS
 Compiles and runs with MSVC 2012 RC and mingw gcc 4.7.1 (nuwen.net distro)

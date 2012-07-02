@@ -225,6 +225,9 @@ namespace jrb_node{
 		typedef jrb_node::jrb_stream_reader<boost::asio::ip::tcp::socket> stream_reader;
 		typedef boost::shared_ptr<stream_reader> connection_ptr;
 		typedef std::function<bool (request&, response&, const boost::system::error_code& )> handler_func;
+		typedef std::function<bool (request&, response&)> simple_handler_func;
+		typedef std::function<void (const boost::system::error_code&) > simple_error_func;
+
 
 		http_server(boost::asio::io_service& io_service, int port)
 			: acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
@@ -232,9 +235,27 @@ namespace jrb_node{
 		}
 
 
-		void accept(handler_func func);
+		void accept_ec(handler_func func);
+		void accept(simple_handler_func f){
+			simple_error_func ef = error_func_;
+			handler_func func = [f,ef](request& req,  response& res, const boost::system::error_code& ec)->bool{
+				if(!ec){
+					return f(req,res);
+				}
+				else{
+					if(ef){
+						ef(ec);
+					}
+					return false;
+				}
+			};
+			accept_ec(func);
+		}
+		void set_error_function(simple_error_func func){error_func_ = func;}
 	private:
 		boost::asio::ip::tcp::acceptor acceptor_;
+		simple_error_func error_func_;
+
 	};
 
 #ifdef JRB_NODE_SSL
@@ -245,6 +266,9 @@ namespace jrb_node{
 		typedef jrb_node::jrb_stream_reader<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> stream_reader;
 		typedef boost::shared_ptr<stream_reader> connection_ptr;
 		typedef std::function<bool (request&, response&, const boost::system::error_code& )> handler_func;
+		typedef std::function<bool (request&, response&)> simple_handler_func;
+		typedef std::function<void (const boost::system::error_code&) > simple_error_func;
+
 
 		https_server(boost::asio::io_service& io_service, int port,boost::asio::ssl::context& c)
 			: acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),context_(c)
@@ -252,10 +276,27 @@ namespace jrb_node{
 		}
 
 
-		void accept(handler_func func);
+		void accept_ec(handler_func func);
+		void accept(simple_handler_func f){
+			simple_error_func ef = error_func_;
+			handler_func func = [f,ef](request& req,  response& res, const boost::system::error_code& ec)->bool{
+				if(!ec){
+					return f(req,res);
+				}
+				else{
+					if(ef){
+						ef(ec);
+					}
+					return false;
+				}
+			};
+			accept_ec(func);
+		}
+		void set_error_function(simple_error_func func){error_func_ = func;}
 	private:
 		boost::asio::ip::tcp::acceptor acceptor_;
 		boost::asio::ssl::context& context_;
+		simple_error_func error_func_;
 	};
 
 #endif

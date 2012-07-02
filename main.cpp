@@ -31,19 +31,12 @@ int main()
 		http_server server(io_service,9090);
 
 		// here is our callback function - uses http_client to get boost license
-		server.accept([](request& req,response& res,const boost::system::error_code& ec)->bool{
-			if(!ec){
-				jrb_node::http_client client(jrb_node::uri("http://www.boost.org/LICENSE_1_0.txt"));
-				auto r_client = client.get();
-				res.content_type(r_client.content_type());
-				res.body(r_client.body());
-				return true;
-			}
-			else{
-				std::string s = ec.message();
-				std::cerr << s;
-				return false;
-			}
+		server.accept([](request& req,response& res)->bool{
+			jrb_node::http_client client(jrb_node::uri("http://www.boost.org/LICENSE_1_0.txt"));
+			auto r_client = client.get();
+			res.content_type(r_client.content_type());
+			res.body(r_client.body());
+			return true;
 		});
 
 #ifdef JRB_NODE_SSL
@@ -56,19 +49,12 @@ int main()
 		https_server server_s(io_service,9091,context_);
 
 		// our callback - returns results for google search for boost
-		server_s.accept([](request& req,response& res,const boost::system::error_code& ec)->bool{
-			if(!ec){
-				jrb_node::http_client client(jrb_node::uri("https://raw.github.com/jquery/jquery/master/MIT-LICENSE.txt"));
-				auto r_client  = client.get();
-				res.content_type(r_client.content_type());
-				res.body(r_client.body());
-				return true;
-			}
-			else{
-				std::string s = ec.message();
-				std::cerr << s;
-				return false;
-			}
+		server_s.accept([](request& req,response& res)->bool{
+			jrb_node::http_client client(jrb_node::uri("https://raw.github.com/jquery/jquery/master/MIT-LICENSE.txt"));
+			auto r_client  = client.get();
+			res.content_type(r_client.content_type());
+			res.body(r_client.body());
+			return true;
 		});
 
 #endif
