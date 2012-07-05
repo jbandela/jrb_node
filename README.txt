@@ -1,6 +1,7 @@
 WHAT IS JRB NODE
 
-This library provides a boost.asio based sync and async http_client and http and https server 
+This is a C++11 library that provides a boost.asio based sync and async http client and server 
+http and https (via openssl) are supported in both the client and the server
 
 The http_parser library from joyent is used to parse http (https://github.com/joyent/http-parser/)
 
@@ -18,6 +19,7 @@ Boost license for jrb_node
 MIT license of http_parser
 
 USING
+
 Needs boost and boost asio and boost threads. Tested with boost 1.49
 Openssl needs to be linked unless JRB_NODE_NO_SSL is defined
 
