@@ -1,8 +1,9 @@
 //  Copyright John R. Bandela 2012
 //
 // Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
+//    (See http://www.boost.org/LICENSE_1_0.txt)
+// Portions adapted from examples and documentation for Boost.Asio Copyright © 2003-2012 Christopher M. Kohlhoff
+
 #ifndef JRB_NODE_HPP_2012_06_29
 #define JRB_NODE_HPP_2012_06_29
 
@@ -20,8 +21,6 @@
 #include <stdexcept>
 #include <utility>
 #include <boost/lexical_cast.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 
 #ifdef JRB_NODE_SSL
 #include<boost/asio/ssl.hpp>
@@ -155,10 +154,10 @@ namespace jrb_node{
 
 	struct request{
 	private:
-		boost::shared_ptr<jrb_parser_message> ptr_;
+		std::shared_ptr<jrb_parser_message> ptr_;
 	public:
 		request();
-		request(boost::shared_ptr<jrb_parser_message>p);
+		request(std::shared_ptr<jrb_parser_message>p);
 		std::string body()const;
 		int status_code()const;
 		const http_message::map_type& headers();
@@ -223,7 +222,7 @@ namespace jrb_node{
 	{
 	public:
 		typedef jrb_node::jrb_stream_reader<boost::asio::ip::tcp::socket> stream_reader;
-		typedef boost::shared_ptr<stream_reader> connection_ptr;
+		typedef std::shared_ptr<stream_reader> connection_ptr;
 		typedef std::function<bool (request&, response&, const boost::system::error_code& )> handler_func;
 		typedef std::function<bool (request&, response&)> simple_handler_func;
 		typedef std::function<void (const boost::system::error_code&) > simple_error_func;
@@ -231,6 +230,11 @@ namespace jrb_node{
 
 		http_server(boost::asio::io_service& io_service, int port)
 			: acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
+		{
+		}
+
+		http_server(boost::asio::io_service& io_service,const std::string& ip, int port)
+			: acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(ip), port))
 		{
 		}
 
@@ -264,7 +268,7 @@ namespace jrb_node{
 	{
 	public:
 		typedef jrb_node::jrb_stream_reader<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> stream_reader;
-		typedef boost::shared_ptr<stream_reader> connection_ptr;
+		typedef std::shared_ptr<stream_reader> connection_ptr;
 		typedef std::function<bool (request&, response&, const boost::system::error_code& )> handler_func;
 		typedef std::function<bool (request&, response&)> simple_handler_func;
 		typedef std::function<void (const boost::system::error_code&) > simple_error_func;
@@ -275,7 +279,10 @@ namespace jrb_node{
 		{
 		}
 
-
+		https_server(boost::asio::io_service& io_service,const std::string& ip, int port,boost::asio::ssl::context& c)
+			: acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(ip), port)),context_(c)
+		{
+		}
 		void accept_ec(handler_func func);
 		void accept(simple_handler_func f){
 			simple_error_func ef = error_func_;
@@ -308,7 +315,7 @@ namespace jrb_node{
 
 	struct async_http_client{
 		typedef jrb_node::jrb_stream_reader<boost::asio::ip::tcp::socket> stream_reader;
-		typedef boost::shared_ptr<stream_reader> connection_ptr;
+		typedef std::shared_ptr<stream_reader> connection_ptr;
 		typedef std::function<bool (request&, response&, const boost::system::error_code& )>  s_handler_func;
 
 

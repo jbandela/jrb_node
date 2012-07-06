@@ -1,8 +1,7 @@
 //  Copyright John R. Bandela 2012
 //
 // Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
+//    (See http://www.boost.org/LICENSE_1_0.txt)
 
 #include "jrb_node.h"
 #include <boost/thread.hpp>
@@ -46,9 +45,9 @@ int main()
 		context_.use_private_key_file("jrb.pkey",boost::asio::ssl::context_base::file_format::pem);
 
 		// the ssl server
-		https_server server_s(io_service,9091,context_);
+		https_server server_s(io_service,"127.0.0.1",9091,context_);
 
-		// our callback - returns results for google search for boost
+		// our callback - returns jquery license over https
 		server_s.accept([](request& req,response& res)->bool{
 			jrb_node::http_client client(jrb_node::uri("https://raw.github.com/jquery/jquery/master/MIT-LICENSE.txt"));
 			auto r_client  = client.get();

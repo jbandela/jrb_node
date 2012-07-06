@@ -1,8 +1,8 @@
 //  Copyright John R. Bandela 2012
 //
 // Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
+//    (See http://www.boost.org/LICENSE_1_0.txt)
+// Portions adapted from examples and documentation for Boost.Asio Copyright © 2003-2012 Christopher M. Kohlhoff
 
 #include "External/http_parser.h"
 #include "jrb_node.h"	
@@ -46,7 +46,7 @@ namespace jrb_node{
 
 	// request methods
 	request::request(): ptr_(){}
-	request::request(boost::shared_ptr<jrb_parser_message>p): ptr_(p){}
+	request::request(std::shared_ptr<jrb_parser_message>p): ptr_(p){}
 	std::string request::body() const{return ptr_->message_.body();}
 	int request::status_code()const {return ptr_->status_code;}
 	const http_message::map_type& request::headers(){return ptr_->message_.headers();}
@@ -64,10 +64,10 @@ namespace jrb_node{
 	}
 
 	template <class  AsyncReadStream>
-	struct jrb_stream_reader :public jrb_parser_message,public boost::enable_shared_from_this<jrb_stream_reader<AsyncReadStream>>{
+	struct jrb_stream_reader :public jrb_parser_message,public std::enable_shared_from_this<jrb_stream_reader<AsyncReadStream>>{
 		typedef std::function<bool (request&, response&, const boost::system::error_code& )> handler_func;
 		handler_func handler_;
-		typedef boost::shared_ptr<AsyncReadStream> s_type;
+		typedef std::shared_ptr<AsyncReadStream> s_type;
 		s_type s_;
 		http_parser_settings settings;
 		std::array<char,8192> buffer_;
@@ -107,7 +107,7 @@ namespace jrb_node{
 					boost::system::error_code ec;
 					if(pm->handler_(req,res,ec)){
 
-						auto str = boost::make_shared<std::string>(res.get_as_http());
+						auto str = std::make_shared<std::string>(res.get_as_http());
 						auto ptr = pm->shared_from_this();
 						pm->s_->async_write_some(boost::asio::buffer(*str),[ptr,str](const boost::system::error_code& e,  std::size_t bytes_transferred ){ 
 							if(e){
@@ -245,7 +245,7 @@ namespace jrb_node{
 	void https_server::accept_ec(handler_func func)
 	{
 		typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
-		boost::shared_ptr<ssl_socket> s(new ssl_socket(acceptor_.get_io_service(),context_));
+		std::shared_ptr<ssl_socket> s(new ssl_socket(acceptor_.get_io_service(),context_));
 
 		connection_ptr new_connection(new stream_reader(s,func));
 
@@ -308,10 +308,10 @@ namespace jrb_node{
 	}
 
 	template<class SocketType>
-	struct async_http_client_holder:public boost::enable_shared_from_this<async_http_client_holder<SocketType>>{
+	struct async_http_client_holder:public std::enable_shared_from_this<async_http_client_holder<SocketType>>{
 		typedef std::function<void(const uri&, const client_response&, const boost::system::error_code& )> handler_func;  
 		boost::asio::ip::tcp::resolver resolver_;
-		typedef boost::shared_ptr<SocketType> s_type;
+		typedef std::shared_ptr<SocketType> s_type;
 		s_type socket_;
 		boost::asio::streambuf request_;
 		boost::asio::streambuf response_;
@@ -363,7 +363,7 @@ namespace jrb_node{
 
 									boost::asio::async_write(*ptr->socket_, ptr->request_,[ptr,f](const boost::system::error_code& err, std::size_t sz){
 										if(!err){
-											auto sptr = boost::make_shared<jrb_stream_reader<SocketType>>(ptr->socket_,[ptr,f](request& req, response& res, const boost::system::error_code& ec)->bool{return false;});
+											auto sptr = std::make_shared<jrb_stream_reader<SocketType>>(ptr->socket_,[ptr,f](request& req, response& res, const boost::system::error_code& ec)->bool{return false;});
 											sptr->handler_ = [ptr,f](request& req, response& res,const boost::system::error_code& ec)->bool{
 												f(ptr->uri_,req,ec);
 												return false;
@@ -427,15 +427,15 @@ namespace jrb_node{
 #ifdef JRB_NODE_SSL
 		if(uri_.schema() == "https"){
 			typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
-			boost::shared_ptr<ssl_socket> s(new ssl_socket(*io_,jrb_client_default_context::get_default().context_));
-			boost::shared_ptr<async_http_client_holder<ssl_socket>> holder(new async_http_client_holder<ssl_socket>(uri_,*io_,s));
+			std::shared_ptr<ssl_socket> s(new ssl_socket(*io_,jrb_client_default_context::get_default().context_));
+			std::shared_ptr<async_http_client_holder<ssl_socket>> holder(new async_http_client_holder<ssl_socket>(uri_,*io_,s));
 			holder->get(f);
 			
 		}
 		else
 #endif
 		{
-			boost::shared_ptr<async_http_client_holder<boost::asio::ip::tcp::socket>> holder(new async_http_client_holder<boost::asio::ip::tcp::socket>(uri_,*io_));
+			std::shared_ptr<async_http_client_holder<boost::asio::ip::tcp::socket>> holder(new async_http_client_holder<boost::asio::ip::tcp::socket>(uri_,*io_));
 			holder->get(f);
 
 		}
@@ -444,14 +444,14 @@ namespace jrb_node{
 #ifdef JRB_NODE_SSL
 		if(uri_.schema() == "https"){
 			typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
-			boost::shared_ptr<ssl_socket> s(new ssl_socket(*io_,jrb_client_default_context::get_default().context_));
-			boost::shared_ptr<async_http_client_holder<ssl_socket>> holder(new async_http_client_holder<ssl_socket>(uri_,*io_,s));
+			std::shared_ptr<ssl_socket> s(new ssl_socket(*io_,jrb_client_default_context::get_default().context_));
+			std::shared_ptr<async_http_client_holder<ssl_socket>> holder(new async_http_client_holder<ssl_socket>(uri_,*io_,s));
 			holder->post(data,content_type,f);
 		}
 		else
 #endif
 		{
-			boost::shared_ptr<async_http_client_holder<boost::asio::ip::tcp::socket>> holder(new async_http_client_holder<boost::asio::ip::tcp::socket>(uri_,*io_));
+			std::shared_ptr<async_http_client_holder<boost::asio::ip::tcp::socket>> holder(new async_http_client_holder<boost::asio::ip::tcp::socket>(uri_,*io_));
 			holder->post(data,content_type,f);
 
 		}
