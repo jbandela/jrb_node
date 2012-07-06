@@ -12,6 +12,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/future.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/thread.hpp>
 
 #ifdef JRB_NODE_SSL
 #include <boost/asio/ssl.hpp>
