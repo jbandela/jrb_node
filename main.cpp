@@ -4,8 +4,9 @@
 //    (See http://www.boost.org/LICENSE_1_0.txt)
 
 #include "jrb_node.h"
-#include <boost/thread.hpp>
 #include <iostream>
+#include <map>
+#include <string>
 
 using namespace jrb_node;
 #ifdef JRB_NODE_SSL
@@ -29,8 +30,21 @@ int main()
 		// create a simple http server - no ssl
 		http_server server(io_service,9090);
 
-		// here is our callback function - uses http_client to get boost license
+		// here is our callback function - 
 		server.accept([](request& req,response& res)->bool{
+			// If there is a query then print it out
+			std::map<std::string,std::string> m;
+			req.parse_name_value(m);
+			if(m.size()){
+				std::string body_str;
+				res.content_type("text");
+				for(auto& p: m){
+					body_str += "[" + p.first + "]=[" + p.second + "]\n";
+				}
+				res.body(body_str + req.method() + " " + req.url() + "\n" + jrb_node::name_value_to_string(m));
+				return true;
+			}
+			//uses http_client to get boost license
 			jrb_node::http_client client(jrb_node::uri("http://www.boost.org/LICENSE_1_0.txt"));
 			auto r_client = client.get();
 			res.content_type(r_client.content_type());

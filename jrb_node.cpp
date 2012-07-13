@@ -42,13 +42,20 @@ namespace jrb_node{
 		}
 #endif
 
+#define XX(num, name, string) #string,
 
+const std::string method_names[] = 	{	// HTTP Method names
+   HTTP_METHOD_MAP(XX)
+   ""};
+#undef XX
 	}
 
 	// request methods
 	request::request(): ptr_(){}
 	request::request(std::shared_ptr<jrb_parser_message>p): ptr_(p){}
-	std::string request::body() const{return ptr_->message_.body();}
+	const std::string& request::body() const{return ptr_->message_.body();}
+	const std::string& request::method()const{return ptr_->message_.method();}
+	const std::string& request::url()const{return ptr_->message_.url();}
 	int request::status_code()const {return ptr_->status_code;}
 	const http_message::map_type& request::headers(){return ptr_->message_.headers();}
 
@@ -102,6 +109,7 @@ namespace jrb_node{
 			settings.on_message_complete = [](http_parser* p){
 				jrb_stream_reader<AsyncReadStream>* pm = static_cast<jrb_stream_reader<AsyncReadStream>*>(p);
 				pm->finished_ = true;
+				pm->message_.method(method_names[pm->method]);
 				if(pm->total_bytes_){
 					request req(pm->shared_from_this());
 					response_derived res;
@@ -337,8 +345,10 @@ namespace jrb_node{
 			request_stream << "POST " << uri_.get_uri_client_request_string() << " HTTP/1.0\r\n";
 			request_stream << "Host: " << uri_.host() << "\r\n";
 			request_stream << "Accept: */*\r\n";
-			request_stream << "Content-Type: " << content_type;
+			request_stream << "Content-Type: " << content_type << "\r\n";
+			request_stream << "Content-Length: " << data.size() << "\r\n";
 			request_stream << "Connection: close\r\n\r\n";
+			request_stream << data;
 			request_impl(f);
 
 		}
@@ -488,7 +498,12 @@ namespace jrb_node{
 			p.set_value(std::make_pair(r,err));
 		});
 
+		boost::thread t;
+		if(ptr_){
+			t = std::move(boost::thread([this](){ptr_->run();}));
+		}
 		auto r = f.get();
+		t.join();
 		if(r.second){
 			throw boost::system::system_error(r.second);
 		}
