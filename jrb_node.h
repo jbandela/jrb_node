@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <utility>
 #include <boost/lexical_cast.hpp>
+#include "jrb_node_name_value.h"
 
 #ifdef JRB_NODE_SSL
 #include<boost/asio/ssl.hpp>
@@ -158,16 +159,30 @@ namespace jrb_node{
 	public:
 		request();
 		request(std::shared_ptr<jrb_parser_message>p);
-		std::string body()const;
+		const std::string& body()const;
 		int status_code()const;
-		const http_message::map_type& headers();
-		std::string content_type(){
+		const http_message::map_type& headers()const;
+		std::string content_type()const{
 			auto iter = headers().find("content-type");
 			if (iter == headers().end()){
 				return "";
 			}
 			else{
 				return iter->second;
+			}
+		}
+		const std::string& method()const;
+
+		const std::string& url()const;
+
+		template<class MapType>
+		void parse_name_value(MapType& m){
+			if(method() == "GET"){
+				uri u("http://localhost" + url());
+				jrb_node::parse_name_value(u.query(),m);
+			}
+			else{
+				jrb_node::parse_name_value(body(),m);
 			}
 		}
 	};
@@ -178,11 +193,12 @@ namespace jrb_node{
 	protected:
 		http_message message_;
 		status_t status_;
+		std::function<void(response&)> sender_func_;
 
 	public:
 		response(){}
-		void body(const std::string& s){return message_.body(s);}
-		const std::string& body()const{message_.body();}
+		void body(const std::string& s){ message_.body(s);}
+		const std::string& body()const{return message_.body();}
 
 		void content_type(const std::string & s){
 			message_["Content-Type"] = 	s;
@@ -200,8 +216,7 @@ namespace jrb_node{
 		status_t::status_type status()const{return status_.status_;}
 		void status(status_t::status_type t){status_.status_ = t;}
 
-	};
-	struct response_derived:public response{
+		void send(){if(sender_func_)sender_func_(*this);}
 		void add_required_headers(){
 			message_["Content-Length"] = boost::lexical_cast<std::string>(message_.body().size());
 			if(message_.headers().count("Content-Type") == 0){
@@ -210,6 +225,10 @@ namespace jrb_node{
 
 		}
 		std::string get_as_http();
+
+	};
+	struct response_derived:public response{
+		void set_sender_func(std::function<void(response&) >f){sender_func_ = f;}
 	};
 
 

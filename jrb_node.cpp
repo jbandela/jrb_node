@@ -57,7 +57,7 @@ const std::string method_names[] = 	{	// HTTP Method names
 	const std::string& request::method()const{return ptr_->message_.method();}
 	const std::string& request::url()const{return ptr_->message_.url();}
 	int request::status_code()const {return ptr_->status_code;}
-	const http_message::map_type& request::headers(){return ptr_->message_.headers();}
+	const http_message::map_type& request::headers()const{return ptr_->message_.headers();}
 
 	
 	// helper function
@@ -114,11 +114,10 @@ const std::string method_names[] = 	{	// HTTP Method names
 					request req(pm->shared_from_this());
 					response_derived res;
 					boost::system::error_code ec;
-					if(pm->handler_(req,res,ec)){
-
-						auto str = std::make_shared<std::string>(res.get_as_http());
-						auto ptr = pm->shared_from_this();
-						pm->s_->async_write_some(boost::asio::buffer(*str),[ptr,str](const boost::system::error_code& e,  std::size_t bytes_transferred ){ 
+					auto ptr = pm->shared_from_this();
+					auto sender_func = [ptr](response& res){
+												auto str = std::make_shared<std::string>(res.get_as_http());
+						ptr->s_->async_write_some(boost::asio::buffer(*str),[ptr,str](const boost::system::error_code& e,  std::size_t bytes_transferred ){ 
 							if(e){
 								request req;
 								response res;
@@ -131,6 +130,11 @@ const std::string method_names[] = 	{	// HTTP Method names
 								jrb_shutdown_helper(*ptr->s_,ec);
 							}
 						});
+
+					};
+					res.set_sender_func(sender_func);
+					if(pm->handler_(req,res,ec)){
+						res.send();
 					}
 				}
 
@@ -599,7 +603,7 @@ const std::string method_names[] = 	{	// HTTP Method names
 
 	} // namespace misc_strings
 
-	std::string response_derived::get_as_http()
+	std::string response::get_as_http()
 	{
 		add_required_headers();
 		std::vector<std::string> buffers;

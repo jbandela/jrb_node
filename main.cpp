@@ -7,6 +7,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <boost\test\unit_test.hpp>
 
 using namespace jrb_node;
 #ifdef JRB_NODE_SSL
@@ -22,6 +23,7 @@ boost::asio::ssl::context context_(boost::asio::ssl::context::sslv23_server);
 
 int main()
 {
+
 	try
 	{
 		// the io_service used for the servers;
@@ -31,7 +33,7 @@ int main()
 		http_server server(io_service,9090);
 
 		// here is our callback function - 
-		server.accept([](request& req,response& res)->bool{
+		server.accept([&io_service](request& req,response& res)->bool{
 			// If there is a query then print it out
 			std::map<std::string,std::string> m;
 			req.parse_name_value(m);
@@ -44,12 +46,16 @@ int main()
 				res.body(body_str + req.method() + " " + req.url() + "\n" + jrb_node::name_value_to_string(m));
 				return true;
 			}
-			//uses http_client to get boost license
-			jrb_node::http_client client(jrb_node::uri("http://www.boost.org/LICENSE_1_0.txt"));
-			auto r_client = client.get();
-			res.content_type(r_client.content_type());
-			res.body(r_client.body());
-			return true;
+			//uses async_http_client to get boost license
+			jrb_node::async_http_client client(jrb_node::uri("http://www.boost.org/LICENSE_1_0.txt"),io_service);
+			client.get([res](const jrb_node::uri & uri, const jrb_node::client_response& r_client, boost::system::error_code ec)mutable{
+				if(!ec){
+					res.content_type(r_client.content_type());
+					res.body(r_client.body());
+					res.send();
+				}
+			});
+			return false;
 		});
 
 #ifdef JRB_NODE_SSL
