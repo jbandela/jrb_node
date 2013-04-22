@@ -117,7 +117,7 @@ const std::string method_names[] = 	{	// HTTP Method names
 					auto ptr = pm->shared_from_this();
 					auto sender_func = [ptr](response& res){
 												auto str = std::make_shared<std::string>(res.get_as_http());
-						ptr->s_->async_write_some(boost::asio::buffer(*str),[ptr,str](const boost::system::error_code& e,  std::size_t bytes_transferred ){ 
+						boost::asio::async_write( *(ptr->s_),boost::asio::buffer(*str),[ptr,str](const boost::system::error_code& e,  std::size_t bytes_transferred ){ 
 							if(e){
 								request req;
 								response res;

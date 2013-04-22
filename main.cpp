@@ -24,6 +24,11 @@ boost::asio::ssl::context context_(boost::asio::ssl::context::sslv23_server);
 int main()
 {
 
+    		jrb_node::http_client client(jrb_node::uri("https://www.google.com/"));
+			auto r_client  = client.get();
+
+            std::cout << r_client.body() << std::endl;
+
 	try
 	{
 		// the io_service used for the servers;
@@ -68,10 +73,11 @@ int main()
 		https_server server_s(io_service,"127.0.0.1",9091,context_);
 
 		// our callback - returns jquery license over https
-		server_s.accept([](request& req,response& res)->bool{
-			jrb_node::http_client client(jrb_node::uri("https://raw.github.com/jquery/jquery/master/MIT-LICENSE.txt"));
+		server_s.accept([&](request& req,response& res)->bool{
+			jrb_node::http_client client(jrb_node::uri("https://www.google.com/"));
 			auto r_client  = client.get();
-			res.content_type(r_client.content_type());
+			res.content_type("text/plain");
+            auto b = r_client.body();
 			res.body(r_client.body());
 			return true;
 		});
